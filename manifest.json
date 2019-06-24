@@ -1,0 +1,30 @@
+{
+    "name": "Send to Phone",
+    "permissions": [
+        "contextMenus", "identity", "activeTab", "storage", "notifications"
+    ],
+    "content_security_policy":"script-src 'self' https://www.gstatic.com/ https://*.firebaseio.com https://www.googleapis.com; object-src 'self'",
+    "oauth2": {
+      "client_id": "926700184689-m1p9i982b5rsa515fe3chb4qbn8ur2ro.apps.googleusercontent.com",
+      "scopes": [
+          "https://www.googleapis.com/auth/userinfo.email",
+          "https://www.googleapis.com/auth/userinfo.profile"
+        ]
+    },
+    "version": "1.0",
+    "description": "Instantly text and links to your mobile device",
+    "manifest_version": 2,
+    "browser_action": {
+      "default_title": "Send to Phone",
+      "default_popup": "sendWindow.html"
+    },
+    "background": {
+      "persistent": true,
+      "page": "background.html"
+    },
+    "options_ui": {
+      "page": "options.html",
+      "open_in_tab": false
+    },
+    "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA3rvEsNJ7GrcMvPEMkpAS5rbM6OTqAUc78Jn82bEzDzAQTQYqEBSExpaAWGBIwJSyZys8OITa3yiY8KmKSJZ9PjTVQx+qsKrS2lqdcLhlj15V09e4LlHS/zXwnJlL/x6U7GDpKz9DqdKehDjYTb75VI+IKbBJIjZuCuiPLBE+Yz6wN0/x/L+avtlE+gGnxIafW+52db1bahpu485t0j5WFNu7OR5OoNVdwJTMAiNP23SifY/okxBurj+xhKZxNy1UsApWk8QP4Wx0oAywIQrhF7FzXbu5gmV3fvWGMz/w+6zxkR29nLWu9Rn6iQB2bkMNmBcrxb8gqyRjWLqRNhewrQIDAQAB"
+  }

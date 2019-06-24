@@ -1,0 +1,41 @@
+clear stale data after a time + limit how many total
+History (on computer)
+
+Device selection
+forEach
+New device listener (background.js)?
+
+Options
+
+No device popup (app download link)
+
+What happens of device when it is deleted?
+History
+
+Android:
+
+Check permissions
+
+Challenges:
+Android: Firestore
+Reinventing the wheel
+Size limit of files
+- Notifications or full firestore
+Learning workmanager, threads
+
+testing, exceptions, testing
+Choosing between instanceID, token
+
+Converting everything to/from json
+
+https://firebase.google.com/docs/cloud-messaging/concept-options#setting-the-priority-of-a-message
+        https://firebase.google.com/docs/cloud-messaging/android/receive
+        https://github.com/firebase/quickstart-android/blob/master/messaging/app/src/main/java/com/google/firebase/quickstart/fcm/java/MainActivity.java
+        https://github.com/firebase/quickstart-android/blob/master/firestore/app/src/main/java/com/google/firebase/example/fireeats/java/MainActivity.java
+        https://github.com/firebase/quickstart-android/blob/master/firestore/app/src/main/java/com/google/firebase/example/fireeats/java/adapter/FirestoreAdapter.java
+        https://github.com/firebase/quickstart-android/blob/master/messaging/app/src/main/java/com/google/firebase/quickstart/fcm/java/MyFirebaseMessagingService.java
+        https://developers.google.com/android/reference/com/google/firebase/messaging/RemoteMessage
+        ?https://stackoverflow.com/questions/36525508/communication-between-android-services-and-activities
+        https://developer.android.com/reference/android/content/SharedPreferences.html#edit()
+        https://stackoverflow.com/questions/37315301/onsharedpreferencechangelistener-not-work-in-android-app
+        https://stackoverflow.com/questions/28107647/how-to-save-listobject-to-sharedpreferences

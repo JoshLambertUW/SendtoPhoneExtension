@@ -1,19 +1,12 @@
   // Saves options to chrome.storage
 function save_options() {
-  var defaultDevice = 0;
-  var radios = document.getElementById('deviceList');
-  for (var i = 0; i < length.radios; i++){
-    if (radios[i].checked){
-      defaultDevice = radios[i].value;
-      break;
-    }
-  }
-
+  var selection = document.getElementById("selectDevice");
+  var defaultDevice = selection.options[selection.selectedIndex].value;
+  console.log(defaultDevice);
   chrome.storage.sync.set({
       'defaultDevice': defaultDevice
     }, function() {
       var status = document.getElementById('status');
-      console.log(defaultDevice);
       status.textContent = 'Options saved.';
       setTimeout(function() {
         status.textContent = '';
@@ -21,32 +14,24 @@ function save_options() {
     });
   }
   
-  // Restores select box and checkbox state using the preferences
-  // stored in chrome.storage.
   function restore_options() {
-    var deviceList;
-    var defaultDevice = 0;
+    var deviceList = [];
+    var defaultDevice;
 
-    chrome.storage.sync.get(['deviceList', 'defaultDevice'],
+    chrome.storage.sync.get([{'deviceList': deviceList}, {'defaultDevice': 0}],
      function(items) {
       deviceList = items.deviceList;
       defaultDevice = items.defaultDevice;
-      deviceList.forEach(function(item) {
-        var choiceSelection = document.createElement('input');
-        var choiceLabel = document.createElement('label');
-        choiceSelection.setAttribute('type', 'radio');
-        choiceSelection.setAttribute('name', item[0]);
+      var select = document.getElementById("selectDevice");
 
-        if (item[0] === defaultDevice) choiceSelection.checked = true;
-
-        choiceLabel.innerHTML = item[1];
-        choiceLabel.setAttribute('for', item[0]);
-
-        document.getElementById('deviceList').appendChild(choiceSelection);
-        document.getElementById('deviceList').appendChild(choiceLabel);
+      deviceList.forEach(function(item, index) {
+        var s = document.createElement("option");
+        s.textContent = item[1];
+        s.value = item[0];
+        if (item[0] === defaultDevice) select.selectedIndex = index;
+        select.add(s);
       });
     });
-
   }
 
   document.addEventListener('DOMContentLoaded', restore_options);

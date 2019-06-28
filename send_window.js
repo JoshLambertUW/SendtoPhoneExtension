@@ -1,9 +1,11 @@
   var empty_message_error = "This field is required";
+  var empty_device_error = "Please choose a device";
   var backgroundPage;
-  var deviceList;
+  var deviceList = [];
+  var defaultDevice;
 
   var config = {  
-    apiKey: "AIzaSyCTo-abXllUjzoL2ZkIUMJ7kFZlvsFBBmI",
+    apiKey: "AIzaSyDHNpI-fbFqUYhumIOY3zVRP_dfZCpw2LY",
     authDomain: "sendtophone.firebaseapp.com",
     databaseURL: "https://sendtophone.firebaseio.com",
     projectId: "sendtophone",
@@ -45,25 +47,48 @@
     }
   }
 
-  function dataFromWindow(){
+  function sendDataFromWindow() {
+    var sendDataToFirebase = firebase.functions().httpsCallable('sendData');
+    var status = document.getElementById('status');
     var message = document.getElementById("input").value;
+    var select = document.getElementById("selectDevice");
+    var selectedDevice = select.options[select.selectedIndex].value;
 
     if (message == ""){
-      document.getElementById("input").value = empty_message_error;
+      status.textContent = empty_message_error;
+    }
+    else if (selectedDevice == null){
+      status.textContent = empty_device_error;
     }
     else {
-      backgroundPage.send_data(message, 0);
+      sendDataToFirebase({message: message,
+        selectedDevice: selectedDevice}).then(function(result) {
+        if (result.data.success){
+          status.textContent = send_success_message;
+        }
+      }).catch(function(error) {
+        if (error.code === 'messaging/registration-token-not-registered' 
+          || error.code === 'messaging/invalid-registration-token'){
+            status.textContent = device_register_message;
+        }
+        else {
+          status.textContent = unknown_error_message;
+        }
+      });
     }
+
   }
 
   chrome.storage.onChanged.addListener(function(changes, namespace) {
     if (namespace == "sync" && "deviceList" in changes) {
         deviceList = changes.deviceList.newValue;
         var select = document.getElementById('selectDevice').innerHTML = "";
-        deviceList.forEach(function(item) {
-          var el = document.createElement("option");
-          el.textContent = item[1];
-          select.appendChild(el);
+        deviceList.forEach(function(item, index) {
+          var s = document.createElement("option");
+          s.textContent = item[1];
+          s.value = item[0];
+          if (item[0] === items.defaultDevice) select.selectedIndex = index;
+          select.appendChild(s);
         });
     }
   });
@@ -78,28 +103,35 @@
 
     firebase.auth().onAuthStateChanged(function(user) {
       if (user != null) {
-        refreshDeviceList();
         console.log(user.uid);
         var uid = user.uid;
         var currentUser = user;
         document.getElementById('submitButton').textContent = 'Send to device';
         document.getElementById('submitButton').addEventListener('click', dataFromWindow);
+        document.getElementById('refreshDeviceButton').addEventListener('click', refreshDeviceList);
         var select = document.getElementById('selectDevice');
         
-        chrome.storage.sync.get('deviceList', function(items) {
-          deviceList = items.deviceList;
-          console.log(deviceList.length);
-          deviceList.forEach(function(item) {
-            var el = document.createElement("option");
-            el.textContent = item[1];
-            select.appendChild(el);
+        chrome.storage.sync.get([{'deviceList': deviceList}, {'defaultDevice' : 0}],
+          function(items) {
+            if (items.defaultDevice === 0 && items.deviceList.length === 0){
+              display_app_window();
+              return;
+            }
+            defaultDevice = (items.defaultDevice === 0) ? items.deviceList[0][0]:items.defaultDevice;
+            deviceList = items.deviceList;
+            deviceList.forEach(function(item, index) {
+              var s = document.createElement("option");
+              s.textContent = item[1];
+              s.value = item[0];
+              if (item[0] === defaultDevice) select.selectedIndex = index;
+              select.appendChild(s);
+            });
           });
-        });
-      } else {
-        document.getElementById('submitButton').textContent = 'Sign-in with Google';
-        document.getElementById('submitButton').addEventListener('click', startSignIn);
-      }
-    });
+        } else {
+          document.getElementById('submitButton').textContent = 'Sign-in with Google';
+          document.getElementById('submitButton').addEventListener('click', startSignIn);
+        }
+      });
 
     document.getElementById('optionsButton').addEventListener('click', function() {
       if (chrome.runtime.openOptionsPage) {

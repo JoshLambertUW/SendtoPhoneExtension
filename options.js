@@ -17,8 +17,7 @@ function save_options() {
   function restore_options() {
     var deviceList = [];
     var defaultDevice;
-
-    chrome.storage.sync.get([{'deviceList': deviceList}, {'defaultDevice': 0}],
+    chrome.storage.sync.get({'deviceList': deviceList, 'defaultDevice': 0},
      function(items) {
       deviceList = items.deviceList;
       defaultDevice = items.defaultDevice;

@@ -1,20 +1,13 @@
-  var empty_message_error = "This field is required";
+  var empty_message_error = "Please enter something to send";
   var empty_device_error = "Please choose a device";
   var backgroundPage;
   var deviceList = [];
   var defaultDevice;
 
-  var config = {  
-    apiKey: "AIzaSyDHNpI-fbFqUYhumIOY3zVRP_dfZCpw2LY",
-    authDomain: "sendtophone.firebaseapp.com",
-    databaseURL: "https://sendtophone.firebaseio.com",
-    projectId: "sendtophone",
-    storageBucket: "sendtophone.appspot.com",
-    messagingSenderId: "926700184689",
-    appId: "1:926700184689:web:096c91250c3d677a"
-  };
-
   function startAuth(interactive) {
+    if (firebase.auth().currentUser) {
+      firebase.auth().signOut();
+    }
     // Request an OAuth token from the Chrome Identity API.
     chrome.identity.getAuthToken({interactive: !!interactive}, function(token) {
       if (chrome.runtime.lastError && !interactive) {
@@ -39,16 +32,7 @@
     });
   }
 
-  function startSignIn() {
-    if (firebase.auth().currentUser) {
-      firebase.auth().signOut();
-    } else {
-      startAuth(true);
-    }
-  }
-
   function sendDataFromWindow() {
-    var sendDataToFirebase = firebase.functions().httpsCallable('sendData');
     var status = document.getElementById('status');
     var message = document.getElementById("input").value;
     var select = document.getElementById("selectDevice");
@@ -61,22 +45,20 @@
       status.textContent = empty_device_error;
     }
     else {
-      sendDataToFirebase({message: message,
-        selectedDevice: selectedDevice}).then(function(result) {
-        if (result.data.success){
-          status.textContent = send_success_message;
-        }
-      }).catch(function(error) {
-        if (error.code === 'messaging/registration-token-not-registered' 
-          || error.code === 'messaging/invalid-registration-token'){
-            status.textContent = device_register_message;
+      var result = await sendMessage(message, selectedDevice);
+      if (result.results[0].error == null){
+        status.textContent = send_success_message;
+      }
+      else {
+        if (result.results[0].error.code === 'messaging/registration-token-not-registered' ||
+        result.results[0].error.code === 'messaging/invalid-registration-token'){
+          status.textContent = device_register_message;
         }
         else {
           status.textContent = unknown_error_message;
         }
-      });
+      }
     }
-
   }
 
   chrome.storage.onChanged.addListener(function(changes, namespace) {
@@ -94,8 +76,6 @@
   });
 
   function initApp(){
-    var db = firebase.firestore();
-
     backgroundPage = chrome.extension.getBackgroundPage();
     if (backgroundPage.message != null && backgroundPage.message != ""){
       document.getElementById("input").value = backgroundPage.message;
@@ -107,11 +87,11 @@
         var uid = user.uid;
         var currentUser = user;
         document.getElementById('submitButton').textContent = 'Send to device';
-        document.getElementById('submitButton').addEventListener('click', dataFromWindow);
+        document.getElementById('submitButton').addEventListener('click', sendDataFromWindow);
         document.getElementById('refreshDeviceButton').addEventListener('click', refreshDeviceList);
         var select = document.getElementById('selectDevice');
-        
-        chrome.storage.sync.get([{'deviceList': deviceList}, {'defaultDevice' : 0}],
+
+        chrome.storage.sync.get({'deviceList': deviceList, 'defaultDevice': 0},
           function(items) {
             if (items.defaultDevice === 0 && items.deviceList.length === 0){
               display_app_window();
@@ -129,7 +109,7 @@
           });
         } else {
           document.getElementById('submitButton').textContent = 'Sign-in with Google';
-          document.getElementById('submitButton').addEventListener('click', startSignIn);
+          document.getElementById('submitButton').addEventListener('click', startAuth);
         }
       });
 
@@ -144,5 +124,6 @@
   }
   
   window.onload = function() {
+    firebase.initializeApp(config);
     initApp();
   }

@@ -26,6 +26,7 @@
 
   chrome.runtime.onInstalled.addListener(function() {
     setUpContextMenu();
+    firebase.initializeApp(config);
   });
 
   chrome.contextMenus.onClicked.addListener(function(itemData, tab) {
@@ -41,5 +42,5 @@
       message = itemData.pageUrl;
     }
     
-    display_prompt();
+    displayPrompt();
   });

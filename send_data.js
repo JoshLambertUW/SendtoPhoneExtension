@@ -6,7 +6,7 @@ const contextPopupTop = ~~(screen.height * 0.4);
 const send_success_message = "Message successfully sent!";
 const device_register_message = "There was an issue sending to this device. Make sure that the app is installed on the device and then try refreshing the device list from the extension.";
 const unknown_error_message = "Unable to send. Please try again later.";
-
+  
 var config = {  
   apiKey: "AIzaSyDHNpI-fbFqUYhumIOY3zVRP_dfZCpw2LY",
   authDomain: "sendtophone.firebaseapp.com",
@@ -17,41 +17,35 @@ var config = {
   appId: "1:926700184689:web:096c91250c3d677a"
 };
 
-firebase.initializeApp(config);
-var functions = firebase.functions();
-var db = firebase.firestore();
-var user = firebase.auth().currentUser;
-  
-  function sendDataFromNotification(selection) {
-    var deviceList = [];
-    var defaultDevice;
-    var sendDataToFirebase = firebase.functions().httpsCallable('sendData');
+function sendMessageToDefault(selection){
+  var deviceList = [];
+  var defaultDevice;
 
-    chrome.storage.sync.get([{'deviceList': deviceList}, {'defaultDevice': 0}],
+  chrome.storage.sync.get({'deviceList': deviceList, 'defaultDevice': 0},
       function(items) {
         if (items.defaultDevice === 0 && items.deviceList.length === 0){
-          display_app_window();
+          displayAppWindow();
           return;
         }
-        defaultDevice = (items.defaultDevice === 0) ? items.deviceList[0][0]:items.defaultDevice;
-        sendDataToFirebase({message: selection,
-          selectedDevice: defaultDevice}).then(function(result) {
-          if (result.data.success){
-            result_notification(true, send_success_message);
-          }
-        }).catch(function(error) {
-          if (error.code === 'messaging/registration-token-not-registered' 
-            || error.code === 'messaging/invalid-registration-token'){
-            result_notification(false, device_register_message);
-          }
-          else {
-            result_notification(false, unknown_error_message);
-          }
-      });
+        if (items.defaultDevice === 0){
+          defaultDevice = items.deviceList[0][0];
+          chrome.storage.sync.set({'defaultDevice': defaultDevice});
+        }
+        else { defaultDevice = items.defaultDevice; }
+        var sendDataToFirebase = firebase.functions().httpsCallable('sendData');
+        return sendDataToFirebase({message: selection,
+          selectedDevice: defaultDevice});
     });
+}
+
+function sendMessage(selection, selectedDevice) {
+  var sendDataToFirebase = firebase.functions().httpsCallable('sendData');
+  return sendDataToFirebase({message: selection,
+    selectedDevice: selectedDevice});
   }
 
   function refreshDeviceList(){
+    var db = firebase.firestore();
     var user = firebase.auth().currentUser; 
     console.log(user.uid);
     var deviceList = [];
@@ -66,7 +60,7 @@ var user = firebase.auth().currentUser;
     });
   }
 
-  function display_send_window(){
+  function displaySendWindow(){
     chrome.windows.create({'url': 'sendWindow.html', 
       'type': 'popup', 
       'width': contextPopupW, 
@@ -75,7 +69,7 @@ var user = firebase.auth().currentUser;
       'top': contextPopupTop});
   }
 
-  function display_app_window(){
+  function displayAppWindow(){
     chrome.windows.create({'url': 'appWindow.html', 
     'type': 'popup', 
     'width': contextPopupW, 
@@ -84,28 +78,37 @@ var user = firebase.auth().currentUser;
     'top': contextPopupTop});
   }
 
-  function result_notification(success, message){
+  function resultNotification(result){
+    var iconUrl = 'send_notification.png';
+    var message = send_success_message;
     var notificationID = null;
-    if (success) var notificationIcon = 'send_notifiction.png';
-    else var notificationIcon = 'error_notification.png';
-
+    
+    if (result.results[0].error != null){
+      notificationIcon = 'error_notification.png';
+      if (result.results[0].error.code === 'messaging/registration-token-not-registered' 
+        || result.results[0].error.code === 'messaging/invalid-registration-token'){
+        message = device_register_message;
+        }
+      else {
+        message = unknown_error_message;
+      }
+    }
     var notificationData = {'type': 'basic', 
-          'iconUrl': notificationIcon,
+          'iconUrl': iconUrl,
           'title': 'Send to Device', 
           'message': message
         };
-
     chrome.notifications.create(notificationData, function(notificationId) {
       notificationID = notificationId;
     });
-    
   }
 
-  function send_notification(){
+  function sendNotification(){
     var notificationID = null;
     var notificationMessage = message.substring(0,159);
+    var iconUrl = 'send_notification.png';
     var notificationData = {'type': 'basic', 
-          'iconUrl': 'send_notification.png',
+          'iconUrl': iconUrl,
           'title': 'Send to Device', 
           'message': notificationMessage,
           buttons: [
@@ -120,21 +123,24 @@ var user = firebase.auth().currentUser;
     chrome.notifications.onButtonClicked.addListener(function(nId, bId) {
       if (nId === notificationID) {
           if (bId === 0) {
-            sendDataFromNotification(message);
+            sendMessageToDefault(message)
+            .then(function(result){
+              resultNotication(result);
+            });
           } else if (bId === 1) {
-            display_send_window();
+            displaySendWindow();
           }
       }
     });
   }
 
-  function display_prompt(){
+  function displayPrompt(){
     chrome.notifications.getPermissionLevel(function (permissionLevel) {
       if (permissionLevel === 'granted') {
-        send_notification();
+        sendNotification();
       }
       else {
-        display_window();
+        displaySendWindow();
       }
     });
   }

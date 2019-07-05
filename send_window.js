@@ -45,19 +45,21 @@
       status.textContent = empty_device_error;
     }
     else {
-      var result = await sendMessage(message, selectedDevice);
-      if (result.results[0].error == null){
-        status.textContent = send_success_message;
-      }
-      else {
-        if (result.results[0].error.code === 'messaging/registration-token-not-registered' ||
-        result.results[0].error.code === 'messaging/invalid-registration-token'){
-          status.textContent = device_register_message;
+      sendMessage(message, selectedDevice).then(function(result) {
+        if (result.data.successCount){
+          status.textContent = send_success_message;
+          document.getElementById("input").value = "";
         }
         else {
-          status.textContent = unknown_error_message;
+          if (result.data.results[0].error.code === 'messaging/registration-token-not-registered' ||
+          result.data.results[0].error.code === 'messaging/invalid-registration-token'){
+            status.textContent = device_register_message;
+          }
+          else {
+            status.textContent = unknown_error_message;
+          }
         }
-      }
+      });
     }
   }
 

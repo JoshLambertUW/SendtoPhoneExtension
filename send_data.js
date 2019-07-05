@@ -17,7 +17,7 @@ var config = {
   appId: "1:926700184689:web:096c91250c3d677a"
 };
 
-function sendMessageToDefault(selection){
+function sendMessageFromNotification(selection){
   var deviceList = [];
   var defaultDevice;
 
@@ -32,17 +32,21 @@ function sendMessageToDefault(selection){
           chrome.storage.sync.set({'defaultDevice': defaultDevice});
         }
         else { defaultDevice = items.defaultDevice; }
-        var sendDataToFirebase = firebase.functions().httpsCallable('sendData');
-        return sendDataToFirebase({message: selection,
-          selectedDevice: defaultDevice});
+        sendMessage(selection, defaultDevice).then(function(result) {
+            console.log(result);
+            resultNotification(result);
+          }).catch(function(error) {
+            console.log(error.code);
+          });
     });
 }
 
 function sendMessage(selection, selectedDevice) {
+  var functions = firebase.functions();
   var sendDataToFirebase = firebase.functions().httpsCallable('sendData');
   return sendDataToFirebase({message: selection,
     selectedDevice: selectedDevice});
-  }
+}
 
   function refreshDeviceList(){
     var db = firebase.firestore();
@@ -82,11 +86,11 @@ function sendMessage(selection, selectedDevice) {
     var iconUrl = 'send_notification.png';
     var message = send_success_message;
     var notificationID = null;
-    
-    if (result.results[0].error != null){
-      notificationIcon = 'error_notification.png';
-      if (result.results[0].error.code === 'messaging/registration-token-not-registered' 
-        || result.results[0].error.code === 'messaging/invalid-registration-token'){
+
+    if (!result.data.successCount){
+      iconUrl = 'error_notification.png';
+      if (result.data.results[0].error.code === 'messaging/registration-token-not-registered' 
+        || result.data.results[0].error.code === 'messaging/invalid-registration-token'){
         message = device_register_message;
         }
       else {
@@ -98,6 +102,7 @@ function sendMessage(selection, selectedDevice) {
           'title': 'Send to Device', 
           'message': message
         };
+
     chrome.notifications.create(notificationData, function(notificationId) {
       notificationID = notificationId;
     });
@@ -123,10 +128,7 @@ function sendMessage(selection, selectedDevice) {
     chrome.notifications.onButtonClicked.addListener(function(nId, bId) {
       if (nId === notificationID) {
           if (bId === 0) {
-            sendMessageToDefault(message)
-            .then(function(result){
-              resultNotication(result);
-            });
+            sendMessageFromNotification(message);
           } else if (bId === 1) {
             displaySendWindow();
           }

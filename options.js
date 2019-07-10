@@ -1,13 +1,25 @@
   // Saves options to chrome.storage
-function save_options() {
-  var selection = document.getElementById("selectDevice");
-  var defaultDevice = selection.options[selection.selectedIndex].value;
-  console.log(defaultDevice);
-  chrome.storage.sync.set({
-      'defaultDevice': defaultDevice
-    }, function() {
+  function save_options() {
+    var selection = document.getElementById("selectDevice");
+    var defaultDevice = selection.options[selection.selectedIndex].value;
+    console.log(defaultDevice);
+    chrome.storage.sync.set({
+        'defaultDevice': defaultDevice
+      }, function() {
+        var status = document.getElementById('status');
+        status.textContent = 'Options saved.';
+        setTimeout(function() {
+          status.textContent = '';
+        }, 750);
+      });
+  }
+
+  function delete_device(){
+    var selection = document.getElementById("selectDevice");
+    var selectedDevice = selection.options[selection.selectedIndex].value;
+    deleteDevice(selectedDevice).then(function() {
       var status = document.getElementById('status');
-      status.textContent = 'Options saved.';
+      status.textContent = 'Device deleted';
       setTimeout(function() {
         status.textContent = '';
       }, 750);
@@ -36,3 +48,7 @@ function save_options() {
   document.addEventListener('DOMContentLoaded', restore_options);
   document.getElementById('save').addEventListener('click',
       save_options);
+  document.getElementById('delete').addEventListener('click',
+      delete_device);
+
+      

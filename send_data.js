@@ -33,7 +33,6 @@ function sendMessageFromNotification(selection){
         }
         else { defaultDevice = items.defaultDevice; }
         sendMessage(selection, defaultDevice).then(function(result) {
-            console.log(result);
             resultNotification(result);
           }).catch(function(error) {
             console.log(error.code);
@@ -41,25 +40,35 @@ function sendMessageFromNotification(selection){
     });
 }
 
-function sendMessage(selection, selectedDevice) {
-  var functions = firebase.functions();
-  var sendDataToFirebase = firebase.functions().httpsCallable('sendData');
-  return sendDataToFirebase({message: selection,
-    selectedDevice: selectedDevice});
-}
+  function sendMessage(selection, selectedDevice) {
+    var functions = firebase.functions();
+    var sendDataToFirebase = firebase.functions().httpsCallable('sendData');
+    return sendDataToFirebase({message: selection,
+      selectedDevice: selectedDevice});
+  }
+
+  function deleteDevice(selectedDevice) {
+    var functions = firebase.functions();
+    var deleteDeviceFromFirebase = firebase.functions().httpsCallable('deleteDevice');
+    return deleteDeviceFromFirebase({selectedDevice: selectedDevice});
+  }
 
   function refreshDeviceList(){
     var db = firebase.firestore();
     var user = firebase.auth().currentUser; 
-    console.log(user.uid);
     var deviceList = [];
-    db.collection('users').doc(user.uid).collection('devices').get().then(function(querySnapshot) {
-      querySnapshot.forEach(function(doc) {
-        var device = [doc.id, doc.get('deviceName')];
-        deviceList.push(device);
-      });
-
-      chrome.storage.sync.set({'deviceList': deviceList}, function() {
+    var defaultDevice = 0;
+    
+    chrome.storage.sync.get({'defaultDevice': 0},
+      function(items) {
+        db.collection('users').doc(user.uid).collection('devices').get().then(function(querySnapshot) {
+          querySnapshot.forEach(function(doc) {
+            if (doc.id === items.defaultDevice) defaultDevice = items.defaultDevice;
+            var device = [doc.id, doc.get('deviceName')];
+            deviceList.push(device);
+          });
+        if (defaultDevice === 0) defaultDevice = deviceList[0][0];
+        chrome.storage.sync.set({'deviceList': deviceList, 'defaultDevice': defaultDevice});
       });
     });
   }
@@ -83,12 +92,12 @@ function sendMessage(selection, selectedDevice) {
   }
 
   function resultNotification(result){
-    var iconUrl = 'send_notification.png';
-    var message = send_success_message;
+    var iconUrl = '/img/send_notification.png';
+    var message;
     var notificationID = null;
 
     if (!result.data.successCount){
-      iconUrl = 'error_notification.png';
+      iconUrl = '/img/error_notification.png';
       if (result.data.results[0].error.code === 'messaging/registration-token-not-registered' 
         || result.data.results[0].error.code === 'messaging/invalid-registration-token'){
         message = device_register_message;
@@ -97,6 +106,10 @@ function sendMessage(selection, selectedDevice) {
         message = unknown_error_message;
       }
     }
+    else {
+      message = send_success_message;
+    }
+    
     var notificationData = {'type': 'basic', 
           'iconUrl': iconUrl,
           'title': 'Send to Device', 
@@ -111,7 +124,7 @@ function sendMessage(selection, selectedDevice) {
   function sendNotification(){
     var notificationID = null;
     var notificationMessage = message.substring(0,159);
-    var iconUrl = 'send_notification.png';
+    var iconUrl = '/img/send_notification.png';
     var notificationData = {'type': 'basic', 
           'iconUrl': iconUrl,
           'title': 'Send to Device', 

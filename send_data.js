@@ -17,11 +17,11 @@ var config = {
   appId: "1:926700184689:web:096c91250c3d677a"
 };
 
-function sendMessageFromNotification(selection){
-  var deviceList = [];
-  var defaultDevice;
+  function sendMessageFromNotification(selection){
+    var deviceList = [];
+    var defaultDevice;
 
-  chrome.storage.sync.get({'deviceList': deviceList, 'defaultDevice': 0},
+    chrome.storage.sync.get({'deviceList': deviceList, 'defaultDevice': 0},
       function(items) {
         if (items.defaultDevice === 0 && items.deviceList.length === 0){
           displayAppWindow();
@@ -37,8 +37,8 @@ function sendMessageFromNotification(selection){
           }).catch(function(error) {
             console.log(error.code);
           });
-    });
-}
+      });
+  }
 
   function sendMessage(selection, selectedDevice) {
     var functions = firebase.functions();
@@ -59,7 +59,7 @@ function sendMessageFromNotification(selection){
     var deviceList = [];
     var defaultDevice = 0;
     
-    chrome.storage.sync.get({'defaultDevice': 0},
+    chrome.storage.sync.get({'deviceList': deviceList, 'defaultDevice': 0},
       function(items) {
         db.collection('users').doc(user.uid).collection('devices').get().then(function(querySnapshot) {
           querySnapshot.forEach(function(doc) {

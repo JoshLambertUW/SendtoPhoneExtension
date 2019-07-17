@@ -49,6 +49,7 @@
         if (result.data.successCount){
           status.textContent = send_success_message;
           document.getElementById("input").value = "";
+          message = "";
         }
         else {
           if (result.data.results[0].error.code === 'messaging/registration-token-not-registered' ||

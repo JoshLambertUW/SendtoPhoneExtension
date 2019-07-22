@@ -17,60 +17,48 @@ var config = {
   appId: "1:926700184689:web:096c91250c3d677a"
 };
 
-  function sendMessageFromNotification(selection){
-    var deviceList = [];
-    var defaultDevice;
-
-    chrome.storage.sync.get({'deviceList': deviceList, 'defaultDevice': 0},
-      function(items) {
-        if (items.defaultDevice === 0 && items.deviceList.length === 0){
-          displayAppWindow();
-          return;
-        }
-        if (items.defaultDevice === 0){
-          defaultDevice = items.deviceList[0][0];
-          chrome.storage.sync.set({'defaultDevice': defaultDevice});
-        }
-        else { defaultDevice = items.defaultDevice; }
-        sendMessage(selection, defaultDevice).then(function(result) {
-            resultNotification(result);
-          }).catch(function(error) {
-            console.log(error.code);
-          });
-      });
+  async function sendMessageFromNotification(selection){
+    if (defaultDevice == null || defaultDevice.length === 0) await getDefaultDevice();
+    sendMessage(selection, defaultDevice).then(function(result) {
+      if (!result) message = '';
+      resultNotification(result);
+    });
   }
 
   function sendMessage(selection, selectedDevice) {
     var functions = firebase.functions();
     var sendDataToFirebase = firebase.functions().httpsCallable('sendData');
-    return sendDataToFirebase({message: selection,
-      selectedDevice: selectedDevice});
-  }
-
-  function deleteDevice(selectedDevice) {
-    var functions = firebase.functions();
-    var deleteDeviceFromFirebase = firebase.functions().httpsCallable('deleteDevice');
-    return deleteDeviceFromFirebase({selectedDevice: selectedDevice});
-  }
-
-  function refreshDeviceList(){
-    var db = firebase.firestore();
-    var user = firebase.auth().currentUser; 
-    var deviceList = [];
-    var defaultDevice = 0;
-    
-    chrome.storage.sync.get({'deviceList': deviceList, 'defaultDevice': 0},
-      function(items) {
-        db.collection('users').doc(user.uid).collection('devices').get().then(function(querySnapshot) {
-          querySnapshot.forEach(function(doc) {
-            if (doc.id === items.defaultDevice) defaultDevice = items.defaultDevice;
-            var device = [doc.id, doc.get('deviceName')];
-            deviceList.push(device);
-          });
-        if (defaultDevice === 0) defaultDevice = deviceList[0][0];
-        chrome.storage.sync.set({'deviceList': deviceList, 'defaultDevice': defaultDevice});
+    console.log(selectedDevice);
+    return sendDataToFirebase({message: selection, selectedDevice: selectedDevice[0]})
+      .then(function(res){
+        var error = '';
+        if (!res.data.successCount){
+          if (result.data.results[0].error.code === 'messaging/registration-token-not-registered' 
+            || result.data.results[0].error.code === 'messaging/invalid-registration-token'){
+            error = device_register_message;
+            }
+          else {
+            error = unknown_error_message;
+          }
+        }
+        addToHistory(selection, selectedDevice, error);
+        return error;
       });
-    });
+  }
+
+  function addToHistory(message, selectedDevice, error){
+      var entry = {
+        'message': message,
+        'selectedDevice': selectedDevice,
+        'error': error,
+      };
+
+      chrome.storage.local.get('sentMessageHistory',
+        function(items) {
+          var messageHistory = items.sentMessageHistory ? items.sentMessageHistory : [];
+          messageHistory.unshift(entry);
+          chrome.storage.local.set({'sentMessageHistory': messageHistory});
+      });
   }
 
   function displaySendWindow(){
@@ -91,30 +79,20 @@ var config = {
     'top': contextPopupTop});
   }
 
-  function resultNotification(result){
+  function resultNotification(error){
     var iconUrl = '/img/send_notification.png';
-    var message;
+    var message = send_success_message;
     var notificationID = null;
 
-    if (!result.data.successCount){
-      iconUrl = '/img/error_notification.png';
-      if (result.data.results[0].error.code === 'messaging/registration-token-not-registered' 
-        || result.data.results[0].error.code === 'messaging/invalid-registration-token'){
-        message = device_register_message;
-        }
-      else {
-        message = unknown_error_message;
-      }
+    if (error){
+        message = error;
     }
-    else {
-      message = send_success_message;
-    }
-    
+
     var notificationData = {'type': 'basic', 
           'iconUrl': iconUrl,
           'title': 'Send to Device', 
           'message': message
-        };
+      };
 
     chrome.notifications.create(notificationData, function(notificationId) {
       notificationID = notificationId;

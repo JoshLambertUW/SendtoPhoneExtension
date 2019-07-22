@@ -1,8 +1,6 @@
   var empty_message_error = "Please enter something to send";
   var empty_device_error = "Please choose a device";
   var backgroundPage;
-  var deviceList = [];
-  var defaultDevice;
 
   function startAuth(interactive) {
     if (firebase.auth().currentUser) {
@@ -37,6 +35,7 @@
     var message = document.getElementById("input").value;
     var select = document.getElementById("selectDevice");
     var selectedDevice = select.options[select.selectedIndex].value;
+    console.log(selectedDevice);
 
     if (message == ""){
       status.textContent = empty_message_error;
@@ -45,20 +44,14 @@
       status.textContent = empty_device_error;
     }
     else {
-      sendMessage(message, selectedDevice).then(function(result) {
-        if (result.data.successCount){
+      sendMessage(message, selectedDevice.split(',')).then(function(result) {
+        if (result){
+          status.textContent = result;
+        }
+        else {
           status.textContent = send_success_message;
           document.getElementById("input").value = "";
           message = "";
-        }
-        else {
-          if (result.data.results[0].error.code === 'messaging/registration-token-not-registered' ||
-          result.data.results[0].error.code === 'messaging/invalid-registration-token'){
-            status.textContent = device_register_message;
-          }
-          else {
-            status.textContent = unknown_error_message;
-          }
         }
       });
     }
@@ -66,55 +59,44 @@
 
   chrome.storage.onChanged.addListener(function(changes, namespace) {
     if (namespace == "sync" && "deviceList" in changes) {
-        deviceList = changes.deviceList.newValue;
-        var select = document.getElementById('selectDevice').innerHTML = "";
-        deviceList.forEach(function(item, index) {
+        var newDevices = changes.deviceList.newValue;
+        var select = document.getElementById('selectDevice');
+
+        newDevices.forEach(function(item, index) {
           var s = document.createElement("option");
           s.textContent = item[1];
           s.value = item[0];
-          if (item[0] === items.defaultDevice) select.selectedIndex = index;
+          if (item[0] === defaultDevice[0]) select.selectedIndex = index;
           select.appendChild(s);
         });
     }
   });
 
-  function initApp(){
+  async function initApp(){
     backgroundPage = chrome.extension.getBackgroundPage();
     if (backgroundPage.message != null && backgroundPage.message != ""){
       document.getElementById("input").value = backgroundPage.message;
     }
+    if (backgroundPage.defaultDevice == null || backgroundPage.defaultDevice.length === 0) await backgroundPage.getDefaultDevice();
 
     firebase.auth().onAuthStateChanged(function(user) {
       if (user != null) {
-        console.log(user.uid);
-        var uid = user.uid;
-        var currentUser = user;
         document.getElementById('submitButton').textContent = 'Send to device';
         document.getElementById('submitButton').addEventListener('click', sendDataFromWindow);
-        document.getElementById('refreshDeviceButton').addEventListener('click', refreshDeviceList);
+        document.getElementById('refreshDeviceButton').addEventListener('click', backgroundPage.refreshDeviceList);
         var select = document.getElementById('selectDevice');
-
-        chrome.storage.sync.get({'deviceList': deviceList, 'defaultDevice': 0},
-          function(items) {
-            if (items.defaultDevice === 0 && items.deviceList.length === 0){
-              display_app_window();
-              return;
-            }
-            defaultDevice = (items.defaultDevice === 0) ? items.deviceList[0][0]:items.defaultDevice;
-            deviceList = items.deviceList;
-            deviceList.forEach(function(item, index) {
-              var s = document.createElement("option");
-              s.textContent = item[1];
-              s.value = item[0];
-              if (item[0] === defaultDevice) select.selectedIndex = index;
-              select.appendChild(s);
-            });
-          });
-        } else {
-          document.getElementById('submitButton').textContent = 'Sign-in with Google';
-          document.getElementById('submitButton').addEventListener('click', startAuth);
-        }
-      });
+        backgroundPage.deviceList.forEach(function(item, index) {
+          var s = document.createElement("option");
+          s.textContent = item[1];
+          s.value = item;
+          if (item[0] === backgroundPage.defaultDevice[0]) select.selectedIndex = index;
+          select.appendChild(s);
+        });
+      } else {
+        document.getElementById('submitButton').textContent = 'Sign-in with Google';
+        document.getElementById('submitButton').addEventListener('click', startAuth);
+      }
+    });
 
     document.getElementById('optionsButton').addEventListener('click', function() {
       if (chrome.runtime.openOptionsPage) {
@@ -124,6 +106,11 @@
       }
     });
 
+    document.getElementById('historyButton').addEventListener('click', displayHistoryWindow);
+  }
+
+  function displayHistoryWindow(){
+    chrome.windows.create({'url': 'sentHistory.html'});
   }
   
   window.onload = function() {

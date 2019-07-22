@@ -17,6 +17,10 @@ var config = {
   appId: "1:926700184689:web:096c91250c3d677a"
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// Sends message to default device
+///////////////////////////////////////////////////////////////////////////////
+
   async function sendMessageFromNotification(selection){
     if (defaultDevice == null || defaultDevice.length === 0) await getDefaultDevice();
     sendMessage(selection, defaultDevice).then(function(result) {
@@ -25,10 +29,15 @@ var config = {
     });
   }
 
+///////////////////////////////////////////////////////////////////////////////
+// Uses Firebase Function to send a message to the selected device
+// Only return error
+// Adds sent message to history
+///////////////////////////////////////////////////////////////////////////////
+
   function sendMessage(selection, selectedDevice) {
     var functions = firebase.functions();
     var sendDataToFirebase = firebase.functions().httpsCallable('sendData');
-    console.log(selectedDevice);
     return sendDataToFirebase({message: selection, selectedDevice: selectedDevice[0]})
       .then(function(res){
         var error = '';
@@ -45,6 +54,11 @@ var config = {
         return error;
       });
   }
+
+///////////////////////////////////////////////////////////////////////////////
+// Stores a history entry object to Chrome storage
+// Uses local Chrome storage because of size limitations
+///////////////////////////////////////////////////////////////////////////////
 
   function addToHistory(message, selectedDevice, error){
       var entry = {

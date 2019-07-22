@@ -43,9 +43,15 @@
     else if (itemData.pageUrl){
       message = itemData.pageUrl;
     }
-    
     displayPrompt();
   });
+
+///////////////////////////////////////////////////////////////////////////////
+// Return a promise when default device is retrieved from Chrome storage.
+// If we don't have a list of devices already, then default device ID
+// may not be valid and we will retrieve device list.
+// If default device is missing or invalid, default to first device on list.
+///////////////////////////////////////////////////////////////////////////////
 
   function getDefaultDevice(){
     return new Promise(function(resolve, reject){
@@ -63,6 +69,12 @@
     })
   }
 
+///////////////////////////////////////////////////////////////////////////////
+// Return a promise when device list is retrieved from Chrome storage.
+// If we don't have any devices, then promise is rejected and
+// window with troubleshooting and link to Android application is launched.
+///////////////////////////////////////////////////////////////////////////////
+
   function getDeviceList(){
     return new Promise(function(resolve, reject){
       chrome.storage.sync.get({'deviceList' : []}, 
@@ -76,6 +88,13 @@
       });
     })
   }
+
+///////////////////////////////////////////////////////////////////////////////
+// Retrieves fresh array of devices from Firebase Firestore.
+// Saves device objects as [Device ID, Device name].
+// Also checks if default device is still valid. 
+// If not will default to first device.
+///////////////////////////////////////////////////////////////////////////////
 
   function refreshDeviceList(){
     var db = firebase.firestore();
@@ -102,12 +121,18 @@
         if (!deviceFound) chrome.storage.sync.set({'defaultDevice': updatedDeviceList[0]});
     });
   }
+
+///////////////////////////////////////////////////////////////////////////////
+// Runs Firebase Function to delete device from Firestore database
+// Deletes device information, FCM token, and pending messages
+// Device will be added again upon login on Android app
+// Refreshes device list when done
+///////////////////////////////////////////////////////////////////////////////
   
   function deleteDevice(selectedDevice) {
     var functions = firebase.functions();
     var deleteDeviceFromFirebase = firebase.functions().httpsCallable('deleteDevice');
-    chrome.storage.sync.set({'defaultDevice': []});
-    getDefaultDevice();
+    refreshDeviceList();
     return deleteDeviceFromFirebase({selectedDevice: selectedDevice[0]});
   }
 

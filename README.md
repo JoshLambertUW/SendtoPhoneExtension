@@ -30,7 +30,7 @@ If you haven't logged in on Android, you will be prompted to download the app
 
 ## Deployment
 
-If you would like to host the extension yourself, you will need:
+If you would like to host the extension yourself, you will need to:
 
 1. Create a new Chrome extension in the Chrome Web Store Developer Dashboard
 2. Replace the key in manifest.json with your new public key

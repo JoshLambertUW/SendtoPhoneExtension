@@ -12,7 +12,7 @@
         ]
     },
     "version": "1.0",
-    "description": "Instantly text and links to your mobile device",
+    "description": "Instantly send text and links to your mobile device",
     "manifest_version": 2,
     "browser_action": {
       "default_title": "Send to Phone",

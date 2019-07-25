@@ -1,14 +1,14 @@
 var clear_success_message = "Message history cleared!";
 var messageHistory;
-  
-  function generateTable() {
-    var table = document.getElementById("history");
 
-    chrome.storage.local.get('sentMessageHistory',
-    function(items) {
+function generateTable() {
+  var table = document.getElementById("history");
+
+  chrome.storage.local.get('sentMessageHistory',
+    function (items) {
       messageHistory = items.sentMessageHistory ? items.sentMessageHistory : [];
 
-      messageHistory.forEach(function(item, index) {
+      messageHistory.forEach(function (item, index) {
         let row = table.insertRow();
         let deviceCell = row.insertCell();
         let deviceText = document.createTextNode(item['selectedDevice'][1]);
@@ -17,7 +17,7 @@ var messageHistory;
         let msgText = document.createTextNode(item['message']);
         msgCell.appendChild(msgText);
         let successCell = row.insertCell();
-        if (item['error'] == null || item['error'].length === 0){
+        if (item['error'] == null || item['error'].length === 0) {
           let successText = document.createTextNode('\u2714');
           successCell.appendChild(successText);
         }
@@ -43,39 +43,39 @@ var messageHistory;
         deleteButton.addEventListener('click', () => deleteMessage(index));
       });
     });
-  }
+}
 
-  function resendMessage(index){
-    var status = document.getElementById('status');
-    if (messageHistory.length < index){
-      var message = messageHistory[index];
-    }
-    deleteMessage(index);
-    sendMessage(message['message'], message['selectedDevice'], 
-      message['selectedDeviceID'])
-      .then(function(result) {
-        if (result){
-          status.textContent = result;
-        }
-        else {
-          status.textContent = send_success_message;
-        }
-      });
+function resendMessage(index) {
+  var status = document.getElementById('status');
+  if (messageHistory.length < index) {
+    var message = messageHistory[index];
   }
+  deleteMessage(index);
+  sendMessage(message['message'], message['selectedDevice'],
+    message['selectedDeviceID'])
+    .then(function (result) {
+      if (result) {
+        status.textContent = result;
+      }
+      else {
+        status.textContent = send_success_message;
+      }
+    });
+}
 
-  function clearHistory(){
-    status.textContent = clear_success_message;
-  }
+function clearHistory() {
+  status.textContent = clear_success_message;
+}
 
-  function deleteMessage(index){
-    messageHistory.splice(index, 1);
-    chrome.storage.local.set({'sentMessageHistory': messageHistory});
-    var status = document.getElementById('status');
-    status.textContent = 'Message deleted from history!';
-  }
+function deleteMessage(index) {
+  messageHistory.splice(index, 1);
+  chrome.storage.local.set({ 'sentMessageHistory': messageHistory });
+  var status = document.getElementById('status');
+  status.textContent = 'Message deleted from history!';
+}
 
-  window.onload = function() {
-    generateTable();
-    document.getElementById('clear').addEventListener('click',
-        clearHistory);
-  }
+window.onload = function () {
+  generateTable();
+  document.getElementById('clear').addEventListener('click',
+    clearHistory);
+}

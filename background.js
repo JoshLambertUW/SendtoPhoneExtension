@@ -108,7 +108,8 @@ function refreshDeviceList() {
         var device = [doc.id, doc.get('deviceName')];
         updatedDeviceList.push(device);
       });
-
+      if (updatedDeviceList.length == 0) return;
+      
       if (defaultDevice.length > 0) {
         for (var device of updatedDeviceList) {
           if (device[0] === defaultDevice[0]) {
